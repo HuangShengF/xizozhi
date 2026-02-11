@@ -41,12 +41,6 @@ extern "C" {
 
 static volatile bool g_status_reporting = false;
 
-// bool level = 0;  // 定义电平状态变量 add YZT
-// uint8_t EarPhone_Flag = 0;//耳机插入状态
-// adc_oneshot_unit_handle_t adc_handle_mic;
-// adc_cali_handle_t mic_adc1_cali_chan0_handle_ = NULL;
-// int mic_adc_value;
-// int mic_voltage;
 
 // hsf add
 // GPIO10用来开关喇叭
@@ -882,9 +876,9 @@ void Application::Start() {
     audio_service_.Initialize(codec);
 
     //hsf
-    if (codec->input_gain() < 37.0f) {
-    codec->SetInputGain(37.0f);
-    }
+    // if (codec->input_gain() < 37.0f) {
+    // codec->SetInputGain(37.0f);
+    // }
 
     audio_service_.Start();
 
