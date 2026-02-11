@@ -875,10 +875,10 @@ void Application::Start() {
     auto codec = board.GetAudioCodec();
     audio_service_.Initialize(codec);
 
-    //hsf
-    // if (codec->input_gain() < 37.0f) {
-    // codec->SetInputGain(37.0f);
-    // }
+    // hsf
+    if (codec->input_gain() != 33.0f) {
+        codec->SetInputGain(33.0f);
+    }
 // git test 555 888 999 1000
     audio_service_.Start();
 

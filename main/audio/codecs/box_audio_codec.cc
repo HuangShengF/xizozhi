@@ -18,7 +18,7 @@ BoxAudioCodec::BoxAudioCodec(void* i2c_master_handle, int input_sample_rate, int
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
     Settings settings("audio", false);
-    input_gain_ = settings.GetInt("input_gain", 24.0f); // hsf 24.0 ->37.5
+    input_gain_ = settings.GetInt("input_gain", 33.0f); // hsf 24.0 ->37.5
 
     CreateDuplexChannels(mclk, bclk, ws, dout, din);
 

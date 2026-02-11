@@ -52,7 +52,7 @@ protected:
     int input_channels_ = 1;
     int output_channels_ = 1;
     int output_volume_ = 80;
-    float input_gain_ = 24.0; // hsf 24 -> 30
+    float input_gain_ = 33.0; // hsf 24 -> 33
 
     virtual int Read(int16_t* dest, int samples) = 0;
     virtual int Write(const int16_t* data, int samples) = 0;
