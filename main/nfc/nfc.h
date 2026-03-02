@@ -341,6 +341,5 @@ unsigned char PcdFastSearch_B_Card(void);
 void ws1850_NFC_gpio_init(void);
 
 uint8_t get_nfc_state(void);
-uint8_t nfc_get_type_a_uid(unsigned char *out_uid, unsigned char *out_len);
 
 #endif

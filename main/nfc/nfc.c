@@ -2274,50 +2274,12 @@ uint8_t get_nfc_state(void)
 	return nfc_state;
 }
 
-uint8_t nfc_get_type_a_uid(unsigned char *out_uid, unsigned char *out_len)
-{
-	const unsigned char *uid_ptr = NULL;
-	unsigned char length = uid_length;
-
-	if (out_uid == NULL || out_len == NULL)
-	{
-		return 0;
-	}
-
-	if (nfc_state != 1)
-	{
-		return 0;
-	}
-
-	if (length == 4)
-	{
-		uid_ptr = &IDA[0];
-	}
-	else if (length == 7)
-	{
-		uid_ptr = &IDA[1];
-	}
-	else if (length == 10)
-	{
-		uid_ptr = &IDA[0];
-	}
-	else
-	{
-		return 0;
-	}
-
-	memcpy(out_uid, uid_ptr, length);
-	*out_len = length;
-	return 1;
-}
-
 
 //****检测卡片类型以及卡片的信息******************************
 void Card_Check(void)
 {
 	unsigned char statusA = MI_OK, statusB = MI_OK;
 	unsigned char i;
-	nfc_state = 0;
 
 	statusA = ComReqA(READ, Block); // 读取A卡信息
 	if (statusA != MI_ERR)
