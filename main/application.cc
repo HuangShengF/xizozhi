@@ -939,11 +939,11 @@ void Application::Start() {
     // ScheduleStatusBarUpdate(display,true); // hsf
 
     // Check for new assets version (disabled)
-    CheckAssetsVersion();   //hsf 注释掉检测更新这块
+    // CheckAssetsVersion();   //hsf 注释掉检测更新这块
 
     // Check for new firmware version or get the MQTT broker address (disabled)
     Ota ota;
-    CheckNewVersion(ota);    //hsf 注释掉检测更新这块
+    // CheckNewVersion(ota);    //hsf 注释掉检测更新这块
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);

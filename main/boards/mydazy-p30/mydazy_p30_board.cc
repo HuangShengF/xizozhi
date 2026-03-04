@@ -403,6 +403,16 @@ private:
         ESP_LOGI(TAG, "关闭音频电源");
         gpio_set_level(AUDIO_PWR_EN_GPIO, 0);
         rtc_gpio_hold_en(AUDIO_PWR_EN_GPIO);
+
+        // hsf
+        // 按键2（中间）唤醒设备
+        ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(BOOT_BUTTON_GPIO, 0));
+        ESP_ERROR_CHECK(rtc_gpio_pullup_en(BOOT_BUTTON_GPIO));
+        ESP_ERROR_CHECK(rtc_gpio_pulldown_dis(BOOT_BUTTON_GPIO));
+        ESP_LOGI(TAG, "BOOT wake source configured, GPIO%d", BOOT_BUTTON_GPIO);
+
+
+
         vTaskDelay(pdMS_TO_TICKS(200)); // 等待音频芯片完全断电
 
         // 3. 陀螺仪唤醒配置（仅在自动休眠时启用）

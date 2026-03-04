@@ -2,10 +2,12 @@
 #include "application.h"
 #include "display.h"
 #include "assets/lang_config.h"
+#include "ml307_gnss_at_test.h"
 #include "settings.h"
 #include <esp_log.h>
 
 static const char *TAG = "DualNetworkBoard";
+static const bool kGnssAtTestOnWifiEnabled = true;
 
 DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_pin, gpio_num_t ml307_dtr_pin, int32_t default_net_type) 
     : Board(), 
@@ -70,6 +72,14 @@ void DualNetworkBoard::StartNetwork() {
         display->SetStatus(Lang::Strings::DETECTING_MODULE);
     }
     current_board_->StartNetwork();
+
+
+    //hsf
+    if (network_type_ == NetworkType::WIFI && kGnssAtTestOnWifiEnabled && !gnss_test_started_) {
+        ESP_LOGI(TAG, "WiFi connected, start ML307 GNSS AT test");
+        ml307_gnss_at_test_start(ml307_tx_pin_, ml307_rx_pin_, 921600);
+        gnss_test_started_ = true;
+    }
 }
 
 NetworkInterface* DualNetworkBoard::GetNetwork() {

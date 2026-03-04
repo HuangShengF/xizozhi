@@ -23,6 +23,7 @@ private:
     gpio_num_t ml307_tx_pin_;
     gpio_num_t ml307_rx_pin_;
     gpio_num_t ml307_dtr_pin_;
+    bool gnss_test_started_ = false;  // hsf
     
     // 从Settings加载网络类型
     NetworkType LoadNetworkTypeFromSettings(int32_t default_net_type);

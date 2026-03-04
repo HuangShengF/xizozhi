@@ -224,7 +224,7 @@
 #include <opus_encoder.h>
 
 static const char *TAG = "Ml307Board";
-static const bool kGnssAtTestEnabled = false;
+static const bool kGnssAtTestEnabled = false;  // GPS测试开关(4G路径)
 
 Ml307Board::Ml307Board(gpio_num_t tx_pin, gpio_num_t rx_pin, gpio_num_t dtr_pin) : tx_pin_(tx_pin), rx_pin_(rx_pin), dtr_pin_(dtr_pin) {
 }
