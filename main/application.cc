@@ -419,6 +419,38 @@ static void UsbAudioDetectTask(void* arg) {
     }
 }
 
+static bool BuildTypeAUidText(char* out, size_t out_size) {
+    if (out == nullptr || out_size == 0) {
+        return false;
+    }
+
+    unsigned char uid[10] = {0};
+    unsigned char uid_len = 0;
+    if (nfc_get_type_a_uid(uid, &uid_len) == 0) {
+        return false;
+    }
+
+    int written = snprintf(out, out_size, "IDA :");
+    if (written < 0 || static_cast<size_t>(written) >= out_size) {
+        return false;
+    }
+    size_t offset = static_cast<size_t>(written);
+
+    for (unsigned char i = 0; i < uid_len; ++i) {
+        written = snprintf(out + offset, out_size - offset, " %02X", uid[i]);
+        if (written < 0 || static_cast<size_t>(written) >= (out_size - offset)) {
+            return false;
+        }
+        offset += static_cast<size_t>(written);
+    }
+
+    return true;
+}
+
+
+
+
+
 // NFC 任务
 static void NfcScanTask(void* arg) {
     auto* board = static_cast<Board*>(arg);
@@ -443,6 +475,7 @@ static void NfcScanTask(void* arg) {
     // }
     // printf("NFC init: TxControlReg=0x%02X\n", ReadRawRC(TxControlReg));
     const TickType_t scan_interval = pdMS_TO_TICKS(200);
+    char last_uid_text[48] = {0};
     while (true) {
         // sta = PcdFastSearch_A_Card();
         // if(sta == MI_OK)
@@ -451,6 +484,20 @@ static void NfcScanTask(void* arg) {
         //     printf("find card!!\n"); //hsf
         // }
         Card_Check();
+
+        char uid_text[48] = {0};
+        if (BuildTypeAUidText(uid_text, sizeof(uid_text))) {
+            if (strcmp(uid_text, last_uid_text) != 0) {
+                auto display = board->GetDisplay();
+                if (display != nullptr) {
+                    display->ShowNotification(uid_text, 10000);
+                }
+                snprintf(last_uid_text, sizeof(last_uid_text), "%s", uid_text);
+            }
+        } else {
+            last_uid_text[0] = '\0';
+        }
+
 
         vTaskDelay(scan_interval);
     }

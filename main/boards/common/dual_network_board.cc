@@ -7,7 +7,7 @@
 #include <esp_log.h>
 
 static const char *TAG = "DualNetworkBoard";
-static const bool kGnssAtTestOnWifiEnabled = true;
+static const bool kGnssAtTestOnWifiEnabled = false;
 
 DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_pin, gpio_num_t ml307_dtr_pin, int32_t default_net_type) 
     : Board(), 
