@@ -41,6 +41,16 @@ extern "C" {
 
 static volatile bool g_status_reporting = false;
 
+//NFC写入测试开关 
+#define NFC_WRITE_TEST_ENABLE 0
+// NFC写入测试块编号 block
+#define NFC_WRITE_TEST_BLOCK 4
+
+static const unsigned char kNfcWriteTestData[16] = {
+    'M', 'Y', 'D', 'A', 'Z', 'Y', '_', 'N',
+    'F', 'C', '_', 'T', 'E', 'S', 'T', '!'
+};
+
 // bool level = 0;  // 定义电平状态变量 add YZT
 // uint8_t EarPhone_Flag = 0;//耳机插入状态
 // adc_oneshot_unit_handle_t adc_handle_mic;
@@ -447,6 +457,21 @@ static bool BuildTypeAUidText(char* out, size_t out_size) {
     return true;
 }
 
+static void PrintBlockHex(const char* prefix, const unsigned char* data, size_t len) {
+    if (prefix == nullptr || data == nullptr) {
+        return;
+    }
+
+    printf("%s", prefix);
+    for (size_t i = 0; i < len; ++i) {
+        printf("%02X", data[i]);
+        if (i + 1 < len) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+}
+
 
 
 
@@ -454,37 +479,23 @@ static bool BuildTypeAUidText(char* out, size_t out_size) {
 // NFC 任务
 static void NfcScanTask(void* arg) {
     auto* board = static_cast<Board*>(arg);
-    // ESP_LOGE(TAG, "NFC scan task started");
     printf("NFC scan task started\n");
     auto bus_handle = board->GetI2cBus();
     if (bus_handle == nullptr) {
-        // ESP_LOGW(TAG, "NFC scan task aborted: I2C bus is not ready");
         printf("NFC scan task aborted: I2C bus is not ready\n");
         vTaskDelete(NULL);
         return;
     }
 
-    // ws1850_NFC_gpio_init();
     ws_iic_init(bus_handle);
     PcdReset();
-    // for (int i = 0; i < 3; ++i) {
-    //     PcdAntennaOff();
-    //     vTaskDelay(pdMS_TO_TICKS(20));
-    //     PcdAntennaOn();
-    //     vTaskDelay(pdMS_TO_TICKS(20));
-    // }
-    // printf("NFC init: TxControlReg=0x%02X\n", ReadRawRC(TxControlReg));
+
     const TickType_t scan_interval = pdMS_TO_TICKS(200);
     char last_uid_text[48] = {0};
     while (true) {
-        // sta = PcdFastSearch_A_Card();
-        // if(sta == MI_OK)
-        // {
-        //     // printf("find card!!");
-        //     printf("find card!!\n"); //hsf
-        // }
         Card_Check();
 
+        // 显示NFC的UID到屏幕上面状态栏
         char uid_text[48] = {0};
         if (BuildTypeAUidText(uid_text, sizeof(uid_text))) {
             if (strcmp(uid_text, last_uid_text) != 0) {
@@ -492,6 +503,24 @@ static void NfcScanTask(void* arg) {
                 if (display != nullptr) {
                     display->ShowNotification(uid_text, 10000);
                 }
+
+#if NFC_WRITE_TEST_ENABLE
+                unsigned char backup_data[16] = {0};
+                unsigned char verify_data[16] = {0};
+                int write_status = nfc_m1_write_block_with_verify(
+                    NFC_WRITE_TEST_BLOCK,
+                    kNfcWriteTestData,
+                    backup_data,
+                    verify_data);
+                if (write_status == MI_OK) {
+                    printf("NFC write test success: uid=%s block=%d\n", uid_text, NFC_WRITE_TEST_BLOCK);
+                    PrintBlockHex("NFC backup data: ", backup_data, sizeof(backup_data));
+                    PrintBlockHex("NFC verify data: ", verify_data, sizeof(verify_data));
+                } else {
+                    printf("NFC write test failed: uid=%s block=%d status=%d\n", uid_text, NFC_WRITE_TEST_BLOCK, write_status);
+                }
+#endif
+
                 snprintf(last_uid_text, sizeof(last_uid_text), "%s", uid_text);
             }
         } else {

@@ -32,7 +32,7 @@ int pcd_com_transceive(struct transceive_buffer *pi);
 unsigned char uid_length = 0;																									  // uid长度
 unsigned char CT[2];																											  // 卡类型
 unsigned char IDA[10];																											  // 存A卡ID
-unsigned char Block = 0x00;																										  // 演示读M1卡扇区1的第二块
+unsigned char Block = 0x05;																										  // 演示读M1卡扇区1的第二块
 unsigned char pps_pcmd = 0;																										  // pps参数
 unsigned char PassWd[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};																	  // M1卡扇区默认秘钥
 unsigned char PassWd_User[16] = {0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 0xFF, 0x07, 0x80, 0x69, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; // 客户修改秘钥
@@ -256,17 +256,8 @@ void PcdConfig(unsigned char type)
 	PcdAntennaOff();
 	delay_ms(1);
 	/***********TX Output Power*********************/
-	// WriteRawRC(GsNReg,  0xFF);	//  值越大输出功率越大
-	// WriteRawRC(CWGsPReg, 0x3F); // 值越大输出功率越大
-
-
-
-
-	WriteRawRC(0x29, 0x3F);
-
-	// WriteRawRC(ModGsPReg, 0x00);	//hsf TX: N-driver off during modulation → full 100% ASK depth
-
-	
+	WriteRawRC(GsNReg, 0x88);	//  值越大输出功率越大
+	WriteRawRC(CWGsPReg, 0x20); // 值越大输出功率越大
 
 	if ('A' == type)
 	{
@@ -274,7 +265,6 @@ void PcdConfig(unsigned char type)
 		ClearBitMask(ComIEnReg, BIT7); // 高电平触发中断
 		WriteRawRC(ModeReg, 0x3D);	   // 11 // CRC seed:6363
 		WriteRawRC(RxSelReg, 0x88);	   // RxWait
-		WriteRawRC(0x26, 0x7F);  // hsf 48  ->  7F   // 接受增益
 		WriteRawRC(TxASKReg, 0x40);	   // 15  //typeA
 		WriteRawRC(TxModeReg, 0x00);   // 12 //Tx Framing A
 		WriteRawRC(RxModeReg, 0x00);   // 13 //Rx framing A
@@ -289,7 +279,7 @@ void PcdConfig(unsigned char type)
 			if (backup == 0x15)
 			{
 				WriteRawRC(0x37, 0x5E);
-				WriteRawRC(0x26, 0x3F);  // hsf新加
+				WriteRawRC(0x26, 0x48);
 				WriteRawRC(0x17, 0x88);
 				WriteRawRC(0x35, 0xED);
 				WriteRawRC(0x3b, 0xA5);
@@ -359,8 +349,123 @@ void PcdConfig(unsigned char type)
 	}
 	/*开场和延时，延时不要低于2ms，太小手机nfc会刷不到*/
 	PcdAntennaOn();
-	delay_ms(200);
+	delay_ms(3);
 }
+
+
+
+// /**
+//  * @brief 配置芯片的A/B模式
+//  * @param type：配置类型
+//  * @return 无
+//  */
+// void PcdConfig(unsigned char type)
+// {
+// 	PcdAntennaOff();
+// 	delay_ms(1);
+// 	/***********TX Output Power*********************/
+// 	// WriteRawRC(GsNReg,  0xFF);	//  值越大输出功率越大
+// 	// WriteRawRC(CWGsPReg, 0x3F); // 值越大输出功率越大
+
+// 	WriteRawRC(0x29, 0x3F);
+
+// 	// WriteRawRC(ModGsPReg, 0x00);	//hsf TX: N-driver off during modulation → full 100% ASK depth
+
+	
+
+// 	if ('A' == type)
+// 	{
+// 		ClearBitMask(Status2Reg, BIT3);
+// 		ClearBitMask(ComIEnReg, BIT7); // 高电平触发中断
+// 		WriteRawRC(ModeReg, 0x3D);	   // 11 // CRC seed:6363
+// 		WriteRawRC(RxSelReg, 0x88);	   // RxWait
+// 		WriteRawRC(0x26, 0x7F);  // hsf 48  ->  7F   // 接受增益
+// 		WriteRawRC(TxASKReg, 0x40);	   // 15  //typeA
+// 		WriteRawRC(TxModeReg, 0x00);   // 12 //Tx Framing A
+// 		WriteRawRC(RxModeReg, 0x00);   // 13 //Rx framing A
+// 		WriteRawRC(AutoTestReg, 0);
+// 		WriteRawRC(0x0C, 0x00); //^_^
+// 								// 以下寄存器必须按顺序配置
+// 		{
+// 			unsigned char backup;
+// 			backup = ReadRawRC(0x37);
+// 			WriteRawRC(0x37, 0x00);
+
+// 			if (backup == 0x15)
+// 			{
+// 				WriteRawRC(0x37, 0x5E);
+// 				WriteRawRC(0x26, 0x3F);  // hsf新加
+// 				WriteRawRC(0x17, 0x88);
+// 				WriteRawRC(0x35, 0xED);
+// 				WriteRawRC(0x3b, 0xA5);
+// 				WriteRawRC(0x37, 0xAE);
+// 				WriteRawRC(0x3b, 0x72);
+// 			}
+// 			/*兼容配置，T板芯片打开*/
+// 			if (backup == 0x18)
+// 			{
+// 				WriteRawRC(0x1d, 0x04); //
+// 				WriteRawRC(0x37, 0xA5);
+// 				WriteRawRC(0x32, 0xC9);
+// 				WriteRawRC(0x33, 0x24);
+// 				WriteRawRC(0x37, 0xAE);
+// 				WriteRawRC(0x33, 0x59);
+// 				WriteRawRC(0x31, 0x08);
+// 				WriteRawRC(0x37, 0x5E);
+// 				WriteRawRC(0x35, 0xED);
+// 				WriteRawRC(0x3a, 0x10);
+// 			}
+// 			WriteRawRC(0x37, backup);
+// 		}
+// 	}
+// 	else if ('B' == type)
+// 	{
+// 		WriteRawRC(Status2Reg, 0x00);  // 清MFCrypto1On
+// 		ClearBitMask(ComIEnReg, BIT7); // 高电平触发中断
+// 		WriteRawRC(ModeReg, 0x3F);	   // CRC seed:FFFF
+// 		WriteRawRC(RxSelReg, 0x88);	   // RxWait
+// 		WriteRawRC(0x0C, 0x00);		   //^_^
+// 		// Tx
+// 		WriteRawRC(ModGsPReg, 0x12); // 调制指数，29h值越大，B卡调制深度越小，反之。
+// 		WriteRawRC(AutoTestReg, 0x00);
+// 		WriteRawRC(TxASKReg, 0x00); // typeB
+// 		WriteRawRC(TypeBReg, 0x13);
+// 		WriteRawRC(TxModeReg, 0x83);	 // Tx Framing B
+// 		WriteRawRC(RxModeReg, 0x83);	 // Rx framing B
+// 		WriteRawRC(BitFramingReg, 0x00); // TxLastBits=0
+// 		{
+// 			unsigned char backup;
+// 			backup = ReadRawRC(0x37);
+// 			WriteRawRC(0x37, 0x00);
+// 			if (backup == 0x15)
+// 			{
+// 				WriteRawRC(0x37, 0x5E);
+// 				WriteRawRC(0x26, 0x48);
+// 				WriteRawRC(0x17, 0x88);
+// 				WriteRawRC(0x35, 0xED);
+// 				WriteRawRC(0x3b, 0xE5);
+// 			}
+// 			/*兼容配置，T板芯片打开*/
+// 			if (backup == 0x18)
+// 			{
+// 				WriteRawRC(0x1d, 0x04); //
+// 				WriteRawRC(0x37, 0xA5);
+// 				WriteRawRC(0x32, 0xC9);
+// 				WriteRawRC(0x33, 0x24);
+// 				WriteRawRC(0x37, 0xAE);
+// 				WriteRawRC(0x33, 0x59);
+// 				WriteRawRC(0x31, 0x08);
+// 				WriteRawRC(0x37, 0x5E);
+// 				WriteRawRC(0x35, 0xED);
+// 				WriteRawRC(0x3a, 0x10);
+// 			}
+// 			WriteRawRC(0x37, backup);
+// 		}
+// 	}
+// 	/*开场和延时，延时不要低于2ms，太小手机nfc会刷不到*/
+// 	PcdAntennaOn();
+// 	delay_ms(200);
+// }
 
 /**
  * @brief 关闭天线
@@ -2404,4 +2509,55 @@ void ws1850_NFC_gpio_init(void) // 引脚初始化
 	gpio_config(&io_conf);
 
 	gpio_set_level(NFC_IRQ_PIN, 0);
+}
+
+int nfc_m1_write_block_with_verify(unsigned char block, const unsigned char *pwritedata, unsigned char *pbackup, unsigned char *pverify)
+{
+	int status;
+
+	if (pwritedata == NULL || pbackup == NULL || pverify == NULL)
+	{
+		return USER_ERROR;
+	}
+
+	/* 禁止写 block 0 和 trailer 块 */
+	if (block == 0 || ((block + 1) % 4 == 0))
+	{
+		return MI_WRONG_ADDR;
+	}
+
+	status = ComReqA(READ, block);
+	if (status != MI_OK)
+	{
+		return status;
+	}
+	if (!(CT[0] == 0x04 && CT[1] == 0x00))
+	{
+		return MI_ERR;
+	}
+
+	memcpy(pbackup, RWDATA, 16); // 备份IC卡数据
+	memcpy(RWDATA, pwritedata, 16); // 把数据写入IC卡
+
+	status = ComReqA(WRITE, block);
+	if (status != MI_OK)
+	{
+		return status;
+	}
+
+	status = ComReqA(READ, block);
+	if (status != MI_OK)
+	{
+		return status;
+	}
+
+	memcpy(pverify, RWDATA, 16);
+
+	// 如果写入和读出来的数据不一致，则返回错误；；；则说明写入失败哦
+	if (memcmp(pverify, pwritedata, 16) != 0)
+	{
+		return MI_WRITEERR;
+	}
+
+	return MI_OK;
 }

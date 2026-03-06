@@ -345,4 +345,5 @@ uint8_t get_nfc_state(void);
 
 //hsf
 uint8_t nfc_get_type_a_uid(unsigned char *out_uid, unsigned char *out_len);
+int nfc_m1_write_block_with_verify(unsigned char block, const unsigned char *pwritedata, unsigned char *pbackup, unsigned char *pverify);
 #endif
