@@ -60,7 +60,7 @@ void ws_iic_init(i2c_master_bus_handle_t bus_handle)
 
   ws_bus_handel = bus_handle;
   WS1850_iic_dev_init();
-  ws_iic_detect();
+  // ws_iic_detect();
 }
 
 

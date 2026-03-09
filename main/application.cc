@@ -493,7 +493,7 @@ static void NfcScanTask(void* arg) {
     const TickType_t scan_interval = pdMS_TO_TICKS(200);
     char last_uid_text[48] = {0};
     while (true) {
-        Card_Check();
+        // Card_Check();
 
         // 显示NFC的UID到屏幕上面状态栏
         char uid_text[48] = {0};
