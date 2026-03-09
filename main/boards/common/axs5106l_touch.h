@@ -53,6 +53,8 @@ public:
     ~Axs5106lTouch();
 
     bool Initialize();
+    bool InitializeHardware();
+    bool InitializeInput();
     void Sleep();
     void Resume();
     void SetTouchCallback(std::function<void()> callback);
@@ -83,6 +85,9 @@ private:
 
     // 中断标志
     bool interrupt_installed_;
+    bool hardware_initialized_;
+    bool reset_gpio_configured_;
+    bool int_gpio_configured_;
 
     // 手势识别状态
     struct {

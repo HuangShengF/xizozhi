@@ -70,7 +70,10 @@ Axs5106lTouch::Axs5106lTouch(i2c_master_bus_handle_t i2c_bus,
       lvgl_indev_(nullptr),
       touch_callback_(nullptr),
       gesture_callback_(nullptr),
-      interrupt_installed_(false) {
+      interrupt_installed_(false),
+      hardware_initialized_(false),
+      reset_gpio_configured_(false),
+      int_gpio_configured_(false) {
     // 初始化手势状态
     gesture_ = {false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     // 初始化滤波器
@@ -82,56 +85,54 @@ Axs5106lTouch::~Axs5106lTouch() {
 }
 
 bool Axs5106lTouch::Initialize() {
+    if (!InitializeHardware()) {
+        return false;
+    }
+    return InitializeInput();
+}
+
+bool Axs5106lTouch::InitializeHardware() {
     ESP_LOGI(TAG, "初始化触摸屏: RST=GPIO%d, INT=GPIO%d, 分辨率=%dx%d",
              rst_gpio_, int_gpio_, width_, height_);
 
-    // 1. 配置复位引脚
-    gpio_config_t rst_cfg = {
-        .pin_bit_mask = (1ULL << rst_gpio_),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    ESP_ERROR_CHECK(gpio_config(&rst_cfg));
-
-    // 2. 配置中断引脚
-    gpio_config_t int_cfg = {
-        .pin_bit_mask = (1ULL << int_gpio_),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_NEGEDGE
-    };
-    ESP_ERROR_CHECK(gpio_config(&int_cfg));
-
-    // 3. 创建 I2C 设备
-    i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = AXS5106L_I2C_ADDR,
-        .scl_speed_hz = 400000,
-        .scl_wait_us = 0,
-        .flags = {.disable_ack_check = 0},
-    };
-
-    esp_err_t ret = i2c_master_bus_add_device(i2c_bus_, &dev_cfg, &i2c_handle_);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "I2C 设备创建失败: %s", esp_err_to_name(ret));
-        return false;
+    if (!reset_gpio_configured_) {
+        gpio_config_t rst_cfg = {
+            .pin_bit_mask = (1ULL << rst_gpio_),
+            .mode = GPIO_MODE_OUTPUT,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE
+        };
+        ESP_ERROR_CHECK(gpio_config(&rst_cfg));
+        reset_gpio_configured_ = true;
+        gpio_set_level(rst_gpio_, 1);
     }
 
-    // 4. 复位芯片
+    if (i2c_handle_ == nullptr) {
+        i2c_device_config_t dev_cfg = {
+            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+            .device_address = AXS5106L_I2C_ADDR,
+            .scl_speed_hz = 400000,
+            .scl_wait_us = 0,
+            .flags = {.disable_ack_check = 0},
+        };
+
+        esp_err_t ret = i2c_master_bus_add_device(i2c_bus_, &dev_cfg, &i2c_handle_);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "I2C 设备创建失败: %s", esp_err_to_name(ret));
+            return false;
+        }
+    }
+
     if (!ResetChip()) {
         return false;
     }
 
-    // 5. 检查并升级固件（关键步骤，确保芯片有正确的固件）
     if (CheckAndUpgradeFirmware()) {
         ESP_LOGI(TAG, "固件已升级，重新复位芯片");
         ResetChip();
     }
 
-    // 6. 验证芯片 ID
     uint8_t chip_id[3] = {0};
     for (int i = 0; i < 5; i++) {
         if (ReadRegister(AXS5106L_REG_CHIP_ID, chip_id, 3)) {
@@ -148,30 +149,60 @@ bool Axs5106lTouch::Initialize() {
         }
     }
 
-    // 6. 读取固件版本
     uint8_t fw_ver[2] = {0};
     if (ReadRegister(AXS5106L_REG_FW_VER, fw_ver, 2)) {
         ESP_LOGI(TAG, "固件版本: %u", (fw_ver[0] << 8) | fw_ver[1]);
     }
 
-    // 7. 安装 GPIO 中断
-    ret = gpio_install_isr_service(0);
+    hardware_initialized_ = true;
+    ESP_LOGI(TAG, "触摸芯片硬件初始化完成");
+    return true;
+}
+
+bool Axs5106lTouch::InitializeInput() {
+    if (!hardware_initialized_) {
+        ESP_LOGE(TAG, "触摸芯片尚未完成硬件初始化，无法注册 LVGL 输入");
+        return false;
+    }
+
+    if (!int_gpio_configured_) {
+        gpio_config_t int_cfg = {
+            .pin_bit_mask = (1ULL << int_gpio_),
+            .mode = GPIO_MODE_INPUT,
+            .pull_up_en = GPIO_PULLUP_ENABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_NEGEDGE
+        };
+        ESP_ERROR_CHECK(gpio_config(&int_cfg));
+        int_gpio_configured_ = true;
+    }
+
+    if (lvgl_indev_ != nullptr) {
+        return true;
+    }
+
+    esp_err_t ret = gpio_install_isr_service(0);
     if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
         ESP_LOGE(TAG, "GPIO ISR 服务安装失败");
         return false;
     }
 
-    ret = gpio_isr_handler_add(int_gpio_, GpioIsrHandler, this);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "GPIO ISR 处理函数添加失败");
-        return false;
+    if (!interrupt_installed_) {
+        ret = gpio_isr_handler_add(int_gpio_, GpioIsrHandler, this);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "GPIO ISR 处理函数添加失败");
+            return false;
+        }
+        interrupt_installed_ = true;
     }
-    interrupt_installed_ = true;
 
-    // 8. 创建 LVGL 输入设备
     lvgl_indev_ = lv_indev_create();
     if (lvgl_indev_ == nullptr) {
         ESP_LOGE(TAG, "LVGL 输入设备创建失败");
+        if (interrupt_installed_) {
+            gpio_isr_handler_remove(int_gpio_);
+            interrupt_installed_ = false;
+        }
         return false;
     }
 
@@ -179,7 +210,7 @@ bool Axs5106lTouch::Initialize() {
     lv_indev_set_read_cb(lvgl_indev_, LvglReadCallback);
     lv_indev_set_user_data(lvgl_indev_, this);
 
-    ESP_LOGI(TAG, "触摸屏初始化成功");
+    ESP_LOGI(TAG, "触摸屏已接入 LVGL");
     return true;
 }
 
@@ -541,7 +572,10 @@ void Axs5106lTouch::Cleanup() {
         i2c_handle_ = nullptr;
     }
 
-    gpio_set_level(rst_gpio_, 0);
+    hardware_initialized_ = false;
+    if (reset_gpio_configured_) {
+        gpio_set_level(rst_gpio_, 1);
+    }
 }
 
 bool Axs5106lTouch::CheckAndUpgradeFirmware() {

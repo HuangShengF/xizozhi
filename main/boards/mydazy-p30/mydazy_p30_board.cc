@@ -248,8 +248,9 @@ private:
     }
 
 
-    void InitializeTouch() {
-        // 使用新的 Axs5106lTouch 驱动（抗干扰能力更强，支持手势识别）
+    void PrepareTouchHardware() {
+        // 共享 LCD/Touch 复位线时，必须先完成触摸芯片的硬件复位和固件检查，
+        // 再初始化 LCD，避免触摸再次拉低复位脚把已经点亮的 LCD 一起复位。
         touch_driver_ = new Axs5106lTouch(
             i2c_bus_,
             TOUCH_RST_NUM,
@@ -261,8 +262,20 @@ private:
             DISPLAY_MIRROR_Y
         );
 
-        if (!touch_driver_->Initialize()) {
-            ESP_LOGE(TAG, "触摸屏初始化失败");
+        if (!touch_driver_->InitializeHardware()) {
+            ESP_LOGE(TAG, "触摸屏硬件初始化失败");
+            delete touch_driver_;
+            touch_driver_ = nullptr;
+        }
+    }
+
+    void InitializeTouch() {
+        if (touch_driver_ == nullptr) {
+            return;
+        }
+
+        if (!touch_driver_->InitializeInput()) {
+            ESP_LOGE(TAG, "触摸屏输入初始化失败");
             delete touch_driver_;
             touch_driver_ = nullptr;
             return;
@@ -785,9 +798,10 @@ public:
 
         InitializeGpio();           // 1. 先启用音频电源
         InitializeI2c();            // 2. 初始化I2C总线 (音频编解码器需要)
+        PrepareTouchHardware();     // 3. 先完成共享复位线上的触摸硬件初始化
         InitializeSpi();            // 4. 初始化SPI总线 (显示需要)
         InitializeDisplay();        // 5. 初始化显示 (依赖SPI)
-        InitializeTouch();          // 6. 初始化触摸屏 (依赖I2C)
+        InitializeTouch();          // 6. LCD/LVGL 就绪后再注册触摸输入
 // #if !MYDAZY_TOUCH_I2C_ONLY_TEST 
         InitializeSc7a20h();        // 7. 初始化SC7A20H传感器 (依赖I2C)
 // #endif
