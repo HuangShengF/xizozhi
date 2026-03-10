@@ -41,32 +41,21 @@ LvglDisplay::LvglDisplay() {
 }
 
 LvglDisplay::~LvglDisplay() {
+    ESP_LOGI(TAG, "[display dtor] LvglDisplay enter");
     if (notification_timer_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before notification_timer delete");
         esp_timer_stop(notification_timer_);
         esp_timer_delete(notification_timer_);
-    }
-
-    if (network_label_ != nullptr) {
-        lv_obj_del(network_label_);
-    }
-    if (notification_label_ != nullptr) {
-        lv_obj_del(notification_label_);
-    }
-    if (status_label_ != nullptr) {
-        lv_obj_del(status_label_);
-    }
-    if (mute_label_ != nullptr) {
-        lv_obj_del(mute_label_);
-    }
-    if (battery_label_ != nullptr) {
-        lv_obj_del(battery_label_);
-    }
-    if( low_battery_popup_ != nullptr ) {
-        lv_obj_del(low_battery_popup_);
+        notification_timer_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after notification_timer delete");
     }
     if (pm_lock_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before esp_pm_lock_delete");
         esp_pm_lock_delete(pm_lock_);
+        pm_lock_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after esp_pm_lock_delete");
     }
+    ESP_LOGI(TAG, "[display dtor] LvglDisplay exit");
 }
 
 void LvglDisplay::SetStatus(const char* status) {

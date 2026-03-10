@@ -998,8 +998,12 @@ public:
 
         // 2. 删除触摸驱动（简化：直接删除，背光已关闭用户看不到异常）
         if (touch_driver_) {
+            ESP_LOGI(TAG, "[cleanup] before touch cleanup");
             touch_driver_->Cleanup();
+            ESP_LOGI(TAG, "[cleanup] after touch cleanup");
+            ESP_LOGI(TAG, "[cleanup] before delete touch");
             delete touch_driver_;
+            ESP_LOGI(TAG, "[cleanup] after delete touch");
             touch_driver_ = nullptr;
         }
 
@@ -1012,8 +1016,10 @@ public:
         vTaskDelay(pdMS_TO_TICKS(100));
 
         if (display_ != nullptr) {
+            ESP_LOGI(TAG, "[cleanup] before delete display");
             delete display_;
             display_ = nullptr;
+            ESP_LOGI(TAG, "[cleanup] after delete display");
             ESP_LOGI(TAG, "显示资源清理完成");
         }
     }

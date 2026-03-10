@@ -557,17 +557,21 @@ void Axs5106lTouch::SetGestureCallback(TouchGestureCallback callback) {
 }
 
 void Axs5106lTouch::Cleanup() {
+    ESP_LOGI(TAG, "[touch cleanup] enter");
     if (interrupt_installed_) {
+        ESP_LOGI(TAG, "[touch cleanup] before remove isr");
         gpio_isr_handler_remove(int_gpio_);
         interrupt_installed_ = false;
     }
 
     if (lvgl_indev_) {
+        ESP_LOGI(TAG, "[touch cleanup] before lv_indev_delete");
         lv_indev_delete(lvgl_indev_);
         lvgl_indev_ = nullptr;
     }
 
     if (i2c_handle_) {
+        ESP_LOGI(TAG, "[touch cleanup] before rm i2c device");
         i2c_master_bus_rm_device(i2c_handle_);
         i2c_handle_ = nullptr;
     }
@@ -576,6 +580,7 @@ void Axs5106lTouch::Cleanup() {
     if (reset_gpio_configured_) {
         gpio_set_level(rst_gpio_, 1);
     }
+    ESP_LOGI(TAG, "[touch cleanup] exit");
 }
 
 bool Axs5106lTouch::CheckAndUpgradeFirmware() {

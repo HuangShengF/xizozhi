@@ -290,62 +290,78 @@ MipiLcdDisplay::MipiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
 }
 
 LcdDisplay::~LcdDisplay() {
+    ESP_LOGI(TAG, "[display dtor] LcdDisplay enter");
+    ESP_LOGI(TAG, "[display dtor] before SetPreviewImage(nullptr)");
     SetPreviewImage(nullptr);
+    ESP_LOGI(TAG, "[display dtor] after SetPreviewImage(nullptr)");
     
     // Clean up GIF controller
     if (gif_controller_) {
+        ESP_LOGI(TAG, "[display dtor] before gif_controller_->Stop()");
         gif_controller_->Stop();
         gif_controller_.reset();
+        ESP_LOGI(TAG, "[display dtor] after gif_controller_.reset()");
     }
     
     if (preview_timer_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before preview_timer delete");
         esp_timer_stop(preview_timer_);
         esp_timer_delete(preview_timer_);
+        preview_timer_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after preview_timer delete");
     }
 
-    if (preview_image_ != nullptr) {
-        lv_obj_del(preview_image_);
+    if (notification_timer_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before notification_timer delete");
+        esp_timer_stop(notification_timer_);
+        esp_timer_delete(notification_timer_);
+        notification_timer_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after notification_timer delete");
     }
-    if (chat_message_label_ != nullptr) {
-        lv_obj_del(chat_message_label_);
-    }
-    if (emoji_label_ != nullptr) {
-        lv_obj_del(emoji_label_);
-    }
-    if (emoji_image_ != nullptr) {
-        lv_obj_del(emoji_image_);
-    }
-    if (emoji_box_ != nullptr) {
-        lv_obj_del(emoji_box_);
-    }
-    if (content_ != nullptr) {
-        lv_obj_del(content_);
-    }
-    if (bottom_bar_ != nullptr) {
-        lv_obj_del(bottom_bar_);
-    }
-    if (status_bar_ != nullptr) {
-        lv_obj_del(status_bar_);
-    }
-    if (top_bar_ != nullptr) {
-        lv_obj_del(top_bar_);
-    }
-    if (side_bar_ != nullptr) {
-        lv_obj_del(side_bar_);
-    }
-    if (container_ != nullptr) {
-        lv_obj_del(container_);
-    }
+
+    // lv_display_delete() tears down the active screen and its entire widget tree.
+    // Null local pointers first so the base destructor won't touch already-freed objects.
+    ESP_LOGI(TAG, "[display dtor] before pointer reset");
+    preview_image_ = nullptr;
+    chat_message_label_ = nullptr;
+    emoji_label_ = nullptr;
+    emoji_image_ = nullptr;
+    emoji_box_ = nullptr;
+    content_ = nullptr;
+    bottom_bar_ = nullptr;
+    status_bar_ = nullptr;
+    top_bar_ = nullptr;
+    side_bar_ = nullptr;
+    container_ = nullptr;
+    network_label_ = nullptr;
+    status_label_ = nullptr;
+    notification_label_ = nullptr;
+    mute_label_ = nullptr;
+    battery_label_ = nullptr;
+    low_battery_popup_ = nullptr;
+    low_battery_label_ = nullptr;
+    ESP_LOGI(TAG, "[display dtor] after pointer reset");
+
     if (display_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before lv_display_delete");
         lv_display_delete(display_);
+        display_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after lv_display_delete");
     }
 
     if (panel_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before esp_lcd_panel_del");
         esp_lcd_panel_del(panel_);
+        panel_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after esp_lcd_panel_del");
     }
     if (panel_io_ != nullptr) {
+        ESP_LOGI(TAG, "[display dtor] before esp_lcd_panel_io_del");
         esp_lcd_panel_io_del(panel_io_);
+        panel_io_ = nullptr;
+        ESP_LOGI(TAG, "[display dtor] after esp_lcd_panel_io_del");
     }
+    ESP_LOGI(TAG, "[display dtor] LcdDisplay exit");
 }
 
 bool LcdDisplay::Lock(int timeout_ms) {

@@ -493,7 +493,7 @@ static void NfcScanTask(void* arg) {
     const TickType_t scan_interval = pdMS_TO_TICKS(200);
     char last_uid_text[48] = {0};
     while (true) {
-        // Card_Check();
+        Card_Check();
 
         // 显示NFC的UID到屏幕上面状态栏
         char uid_text[48] = {0};
@@ -1015,11 +1015,11 @@ void Application::Start() {
     // ScheduleStatusBarUpdate(display,true); // hsf
 
     // Check for new assets version (disabled)
-    // CheckAssetsVersion();   //hsf 注释掉检测更新这块
+    CheckAssetsVersion();   //hsf 注释掉检测更新这块
 
     // Check for new firmware version or get the MQTT broker address (disabled)
     Ota ota;
-    // CheckNewVersion(ota);    //hsf 注释掉检测更新这块
+    CheckNewVersion(ota);    //hsf 注释掉检测更新这块
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
@@ -1511,11 +1511,22 @@ void Application::Reboot() {
     protocol_.reset();
     audio_service_.Stop();
 
+    // Quiesce UI-related timers before tearing down the display tree.
+    if (clock_timer_handle_ != nullptr) {
+        esp_timer_stop(clock_timer_handle_);
+    }
+    if (status_timer_handle_ != nullptr) {
+        esp_timer_stop(status_timer_handle_);
+    }
+
     // 清理显示资源（防止重启时黑屏）
     auto& board = Board::GetInstance();
+    ESP_LOGI(TAG, "[reboot] before CleanupDisplay");
     board.CleanupDisplay();
+    ESP_LOGI(TAG, "[reboot] after CleanupDisplay");
 
     vTaskDelay(pdMS_TO_TICKS(200));
+    ESP_LOGI(TAG, "[reboot] before esp_restart");
     esp_restart();
 }
 
