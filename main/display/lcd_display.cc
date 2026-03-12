@@ -295,7 +295,7 @@ LcdDisplay::~LcdDisplay() {
     SetPreviewImage(nullptr);
     ESP_LOGI(TAG, "[display dtor] after SetPreviewImage(nullptr)");
     
-    // Clean up GIF controller
+    // 先停掉预览/GIF 相关资源，避免后面销毁显示树时还有动画对象在工作。
     if (gif_controller_) {
         ESP_LOGI(TAG, "[display dtor] before gif_controller_->Stop()");
         gif_controller_->Stop();
@@ -319,8 +319,10 @@ LcdDisplay::~LcdDisplay() {
         ESP_LOGI(TAG, "[display dtor] after notification_timer delete");
     }
 
-    // lv_display_delete() tears down the active screen and its entire widget tree.
-    // Null local pointers first so the base destructor won't touch already-freed objects.
+    // 这里不再手工 lv_obj_del 子控件。
+    // 统一交给 lv_display_delete(display_) 回收整棵对象树，
+    // 可以避免“先删子、再删父、基类再删一遍”的重复销毁问题。
+    // 先把成员指针清空，避免基类析构阶段再碰到已经释放的对象。
     ESP_LOGI(TAG, "[display dtor] before pointer reset");
     preview_image_ = nullptr;
     chat_message_label_ = nullptr;

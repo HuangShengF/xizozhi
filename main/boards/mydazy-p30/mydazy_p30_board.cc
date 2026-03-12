@@ -1,4 +1,4 @@
-#include "dual_network_board.h"
+﻿#include "dual_network_board.h"
 #include "ml307_board.h"
 #include "wifi_board.h"
 #include "assets/lang_config.h"
@@ -251,6 +251,7 @@ private:
     void PrepareTouchHardware() {
         // 共享 LCD/Touch 复位线时，必须先完成触摸芯片的硬件复位和固件检查，
         // 再初始化 LCD，避免触摸再次拉低复位脚把已经点亮的 LCD 一起复位。
+        // 这里故意只做触摸芯片 bring-up，不注册 LVGL 输入设备。
         touch_driver_ = new Axs5106lTouch(
             i2c_bus_,
             TOUCH_RST_NUM,
@@ -274,6 +275,7 @@ private:
             return;
         }
 
+        // 到这里 LCD 和 LVGL 都已经准备好，才能安全注册触摸输入设备。
         if (!touch_driver_->InitializeInput()) {
             ESP_LOGE(TAG, "触摸屏输入初始化失败");
             delete touch_driver_;
@@ -367,6 +369,7 @@ private:
 
         // 睡眠模式：CPU 动态 40-80MHz（✅ 保留唤醒词检测和麦克风输入，仅降频+降低屏幕亮度，最低功耗）
         power_save_timer_ = new PowerSaveTimer(120, 60, 300);
+        // power_save_timer_ = new PowerSaveTimer(120, 3, 5); // hsf 测试灵敏度
         power_save_timer_->OnEnterSleepMode([this]() {
             ESP_LOGI(TAG, "进入省电模式（降频+降亮度）");
             GetBacklight()->SetBrightness(15);
@@ -802,6 +805,7 @@ public:
         InitializeSpi();            // 4. 初始化SPI总线 (显示需要)
         InitializeDisplay();        // 5. 初始化显示 (依赖SPI)
         InitializeTouch();          // 6. LCD/LVGL 就绪后再注册触摸输入
+                                     //    这样触摸初始化不会在显示点亮后再拉共享 RST。
 // #if !MYDAZY_TOUCH_I2C_ONLY_TEST 
         InitializeSc7a20h();        // 7. 初始化SC7A20H传感器 (依赖I2C)
 // #endif
@@ -996,7 +1000,8 @@ public:
         }
         vTaskDelay(pdMS_TO_TICKS(100));  // 延长等待时间，确保PWM完全关闭
 
-        // 2. 删除触摸驱动（简化：直接删除，背光已关闭用户看不到异常）
+        // 2. 删除触摸驱动。
+        // 先删 touch 再删 display，避免 touch cleanup 过程中还去访问已经销毁的 LVGL 对象。
         if (touch_driver_) {
             ESP_LOGI(TAG, "[cleanup] before touch cleanup");
             touch_driver_->Cleanup();
@@ -1011,7 +1016,7 @@ public:
         gpio_set_level(AUDIO_PWR_EN_GPIO, 0);
         rtc_gpio_hold_en(AUDIO_PWR_EN_GPIO);
 
-        // 4. 删除显示对象（析构函数会清理 LVGL 和 LCD）
+        // 4. 删除显示对象（析构函数会统一清理 LVGL 和 LCD）
         // 关键：在删除前短暂延迟，确保主循环不再访问 UI
         vTaskDelay(pdMS_TO_TICKS(100));
 

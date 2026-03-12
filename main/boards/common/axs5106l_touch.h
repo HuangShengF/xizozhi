@@ -53,12 +53,15 @@ public:
     ~Axs5106lTouch();
 
     bool Initialize();
+    // 共享 LCD/Touch 复位线时，硬件初始化必须在 LCD 点亮前完成。
     bool InitializeHardware();
+    // LVGL 输入设备注册依赖显示和 LVGL 已经初始化完成。
     bool InitializeInput();
     void Sleep();
     void Resume();
     void SetTouchCallback(std::function<void()> callback);
     void SetGestureCallback(TouchGestureCallback callback);
+    // 共享复位线场景下，这里只释放资源，不主动拉低 RST。
     void Cleanup();
     lv_indev_t* GetLvglDevice() const { return lvgl_indev_; }
 
@@ -85,6 +88,7 @@ private:
 
     // 中断标志
     bool interrupt_installed_;
+    // 用于把“芯片上电/复位”和“LVGL 输入注册”拆成两个阶段。
     bool hardware_initialized_;
     bool reset_gpio_configured_;
     bool int_gpio_configured_;

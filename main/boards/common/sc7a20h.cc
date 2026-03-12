@@ -111,8 +111,8 @@ bool Sc7a20h::SetMotionDetection(bool enable) {
     
     if (enable) {
         // 使用默认阈值和持续时间
-        WriteReg(SC7A20H_INT1_THS, 0x08);        // 默认阈值
-        WriteReg(SC7A20H_INT1_DURATION, 0x02);   // 默认持续时间
+        WriteReg(SC7A20H_INT1_THS, 0x0C);        // 默认阈值  hsf   0x08 --> 0x10
+        WriteReg(SC7A20H_INT1_DURATION, 0x03);   // 默认持续时间  hsf   0x02 --> 0x04
         WriteReg(SC7A20H_INT1_CFG, SC7A20H_MOTION_DETECT);
         ESP_LOGI(TAG, "Motion detection enabled");
     } else {

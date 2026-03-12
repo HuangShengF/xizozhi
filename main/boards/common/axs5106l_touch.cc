@@ -85,6 +85,8 @@ Axs5106lTouch::~Axs5106lTouch() {
 }
 
 bool Axs5106lTouch::Initialize() {
+    // 兼容旧调用：仍然提供一次性初始化入口，
+    // 实际上内部已经拆成“硬件初始化”和“LVGL 输入初始化”两个阶段。
     if (!InitializeHardware()) {
         return false;
     }
@@ -92,6 +94,7 @@ bool Axs5106lTouch::Initialize() {
 }
 
 bool Axs5106lTouch::InitializeHardware() {
+    // 这一阶段允许拉共享复位线，因此必须在 LCD 初始化之前执行。
     ESP_LOGI(TAG, "初始化触摸屏: RST=GPIO%d, INT=GPIO%d, 分辨率=%dx%d",
              rst_gpio_, int_gpio_, width_, height_);
 
@@ -160,6 +163,7 @@ bool Axs5106lTouch::InitializeHardware() {
 }
 
 bool Axs5106lTouch::InitializeInput() {
+    // 这里只做中断和 LVGL 输入设备注册，避免在 LCD 点亮后再次触发共享复位线。
     if (!hardware_initialized_) {
         ESP_LOGE(TAG, "触摸芯片尚未完成硬件初始化，无法注册 LVGL 输入");
         return false;
@@ -215,6 +219,8 @@ bool Axs5106lTouch::InitializeInput() {
 }
 
 bool Axs5106lTouch::ResetChip() {
+    // 这根 RST 线和 LCD 共用时，下面的硬复位会把 LCD 也一起复位，
+    // 所以只能放在 LCD 初始化之前，或者在明确知道可以重建显示状态时调用。
     // 1. 软件复位命令（原始驱动 axs_reset 必须的初始化步骤）
     const uint8_t rst_cmd[5] = {0xB3, 0x55, 0xAA, 0x34, 0x01};
     WriteRegister(0xF0, rst_cmd, 5);
@@ -578,6 +584,7 @@ void Axs5106lTouch::Cleanup() {
 
     hardware_initialized_ = false;
     if (reset_gpio_configured_) {
+        // 共享复位线不能在清理时拉低，否则已经初始化好的 LCD 会被一起按在复位态。
         gpio_set_level(rst_gpio_, 1);
     }
     ESP_LOGI(TAG, "[touch cleanup] exit");

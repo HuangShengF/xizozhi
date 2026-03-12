@@ -49,6 +49,7 @@ LvglDisplay::~LvglDisplay() {
         notification_timer_ = nullptr;
         ESP_LOGI(TAG, "[display dtor] after notification_timer delete");
     }
+    // 基类不再手工删除 LVGL 控件，控件对象统一由派生类里的 lv_display_delete() 回收。
     if (pm_lock_ != nullptr) {
         ESP_LOGI(TAG, "[display dtor] before esp_pm_lock_delete");
         esp_pm_lock_delete(pm_lock_);
