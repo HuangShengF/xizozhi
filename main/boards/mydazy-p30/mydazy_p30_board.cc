@@ -993,6 +993,7 @@ public:
         ESP_LOGI(TAG, "====== 清理显示资源（简化版）======");
 
         // 1. 立即关闭背光，防止用户看到清理过程（避免白屏/雪花屏）
+        // 注意：这里先黑屏并不等于已经重启，真正重启要等 CleanupDisplay() 走完并回到 esp_restart()。
         ESP_LOGI(TAG, "关闭背光（避免重启时闪屏）");
         auto backlight = GetBacklight();
         if (backlight) {
@@ -1017,6 +1018,7 @@ public:
         rtc_gpio_hold_en(AUDIO_PWR_EN_GPIO);
 
         // 4. 删除显示对象（析构函数会统一清理 LVGL 和 LCD）
+        // 之前“黑屏但没真正重启”的卡点就在这里：背光已经关了，但 delete display_ 没有顺利返回。
         // 关键：在删除前短暂延迟，确保主循环不再访问 UI
         vTaskDelay(pdMS_TO_TICKS(100));
 

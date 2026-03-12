@@ -649,6 +649,9 @@ Application::~Application() {
 }
 
 void Application::CheckAssetsVersion() {
+    // 之前出现过“背光已经灭了，但设备并没有真正重启”的现象。
+    // 根因是显示析构链卡在 delete display_，导致代码走不到后面的 esp_restart()。
+    // 所以这里先显式进入 CleanupDisplay()，并在显示析构里避免重复销毁 LVGL 对象。
     auto& board = Board::GetInstance();
     auto display = board.GetDisplay();
     auto& assets = Assets::GetInstance();
