@@ -947,7 +947,7 @@ void Application::Start() {
     // hsf
     xTaskCreate(UsbAudioDetectTask, "usb_audio_detect", 4096, nullptr, 4, nullptr);
 
-    xTaskCreate(NfcScanTask, "nfc_scan", 4096, &board, 5, nullptr);
+    // xTaskCreate(NfcScanTask, "nfc_scan", 4096, &board, 5, nullptr);
 
 
 

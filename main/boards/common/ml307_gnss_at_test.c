@@ -40,7 +40,7 @@ static void send_cmd_and_print(const char *cmd, int timeout_ms) {
     size_t total = 0;
     resp[0] = '\0';
 
-    // uart_flush_input(ML307_AT_UART);
+    uart_flush_input(ML307_AT_UART);
     uart_write_bytes(ML307_AT_UART, cmd, strlen(cmd));
 
     const TickType_t timeout_ticks = pdMS_TO_TICKS(timeout_ms);
@@ -113,12 +113,12 @@ static void ml307_gnss_at_test_task(void *arg) {
         uart_set_pin(ML307_AT_UART, cfg->tx_pin, cfg->rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     }
 
-    // send_cmd_and_print("AT+MGNSSCFG=\"nmea/mask\",63\r\n", 2000);
-    // vTaskDelay(pdMS_TO_TICKS(200));
-    // send_cmd_and_print("AT+MGNSSLOC=1\r\n", 2000);
-    // vTaskDelay(pdMS_TO_TICKS(200));
-    // send_cmd_and_print("AT+MGNSS=1\r\n", 2000);
-    // stream_and_print_lines();
+    send_cmd_and_print("AT+MGNSSCFG=\"nmea/mask\",63\r\n", 1000);
+    vTaskDelay(pdMS_TO_TICKS(200));
+    send_cmd_and_print("AT+MGNSSLOC=1\r\n", 1000);
+    vTaskDelay(pdMS_TO_TICKS(200));
+    send_cmd_and_print("AT+MGNSS=1\r\n", 1000);
+    stream_and_print_lines();
 
 
 
@@ -134,23 +134,23 @@ static void ml307_gnss_at_test_task(void *arg) {
     // stream_and_print_lines();
 
 
-    uart_flush_input(ML307_AT_UART);
-    send_cmd_and_print("AT\r\n", 1000);
-    // 不开自动上报
-    send_cmd_and_print("AT+MGNSSLOC=0\r\n", 2000);
-    // 只打开 GPS + 北斗
-    send_cmd_and_print("AT+MGNSSCFG=\"constellation/mask\",3\r\n", 2000);
-    // 打开全部 NMEA
-    send_cmd_and_print("AT+MGNSSCFG=\"nmea/mask\",63\r\n", 2000);
-    // 开 GNSS
-    send_cmd_and_print("AT+MGNSS=1\r\n", 2000);
-    vTaskDelay(pdMS_TO_TICKS(3000));  // 等3秒
-    // 主动查询卫星
-    send_cmd_and_print("AT+MGNSSNMEA=\"GSV\"\r\n", 3000);
-    // 再查定位
-    send_cmd_and_print("AT+MGNSSNMEA=\"GGA\"\r\n", 3000);
-     vTaskDelay(pdMS_TO_TICKS(3000));  // 等3秒
-    stream_and_print_lines();
+    // uart_flush_input(ML307_AT_UART);
+    // send_cmd_and_print("AT\r\n", 1000);
+    // // 不开自动上报
+    // send_cmd_and_print("AT+MGNSSLOC=0\r\n", 2000);
+    // // 只打开 GPS + 北斗
+    // send_cmd_and_print("AT+MGNSSCFG=\"constellation/mask\",3\r\n", 2000);
+    // // 打开全部 NMEA
+    // send_cmd_and_print("AT+MGNSSCFG=\"nmea/mask\",63\r\n", 2000);
+    // // 开 GNSS
+    // send_cmd_and_print("AT+MGNSS=1\r\n", 2000);
+    // vTaskDelay(pdMS_TO_TICKS(3000));  // 等3秒
+    // // 主动查询卫星
+    // send_cmd_and_print("AT+MGNSSNMEA=\"GSV\"\r\n", 3000);
+    // // 再查定位
+    // send_cmd_and_print("AT+MGNSSNMEA=\"GGA\"\r\n", 3000);
+    //  vTaskDelay(pdMS_TO_TICKS(3000));  // 等3秒
+    // stream_and_print_lines();
     
 }
 
@@ -158,7 +158,7 @@ void ml307_gnss_at_test_start(gpio_num_t tx_pin, gpio_num_t rx_pin, int baud_rat
     g_cfg.tx_pin = tx_pin;
     g_cfg.rx_pin = rx_pin;
     g_cfg.baud_rate = baud_rate;
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(100));
     xTaskCreate(ml307_gnss_at_test_task, "ml307_gnss_at_test", 4096, &g_cfg, 5, NULL);
 }
 
