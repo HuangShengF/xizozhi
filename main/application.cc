@@ -342,11 +342,15 @@ static void UpdateUsbAudioDetect() {
         headset_cnt = 0;
     }
 
-    if (!headset_present && headset_cnt >= 1) {
+    if (!headset_present && headset_cnt >= 2) {
         // 检测到耳机插入，开始识别MIC线路
+        headset_cnt = 0;
+        no_headset_cnt = 0;
+        gpio_set_level(AUDIO_CODEC_PA_PIN, 0);
+        vTaskDelay(pdMS_TO_TICKS(20));
 
         gpio_set_level(USB_SW_GPIO, 1);  // USB_SW拉高，连接模拟USB耳机
-
+        
         // 先将MIC_SELECT置0测电压
         gpio_set_level(MIC_SELECT_GPIO, 0);
         
@@ -375,9 +379,10 @@ static void UpdateUsbAudioDetect() {
             headset_present = true;
             // printf("Selecting MIC_SELECT=0, higher voltage: %d mV\n", mic_mv_0);
             
+            vTaskDelay(pdMS_TO_TICKS(10));
             // 设置PA使能为低电平，关闭扬声器，启用耳机
             gpio_set_level(AUDIO_CODEC_PA_PIN, 0);
-            
+            vTaskDelay(pdMS_TO_TICKS(10));
 
         } else if (mic_mv_1 > mic_mv_0 ) {
             // MIC_SELECT设为1时电压更大且达到最小阈值，选择1
@@ -386,13 +391,18 @@ static void UpdateUsbAudioDetect() {
             headset_present = true;
             // printf("Selecting MIC_SELECT=1, higher voltage: %d mV\n", mic_mv_1);
             
+            vTaskDelay(pdMS_TO_TICKS(10));
             // 设置PA使能为低电平，关闭扬声器，启用耳机
             gpio_set_level(AUDIO_CODEC_PA_PIN, 0);
+            vTaskDelay(pdMS_TO_TICKS(10));
             
         } else {
             // 两个电压都低于阈值或者相等，则默认设置为0
             mic_select_level = 0;
-            gpio_set_level(MIC_SELECT_GPIO, mic_select_level);
+             gpio_set_level(MIC_SELECT_GPIO, mic_select_level);
+            gpio_set_level(USB_SW_GPIO, 0);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            gpio_set_level(AUDIO_CODEC_PA_PIN, 1);
             headset_present = false;
         }
         
@@ -400,10 +410,15 @@ static void UpdateUsbAudioDetect() {
         int final_voltage = (mic_select_level == 0) ? mic_mv_0 : mic_mv_1;
         printf("Final selection - MIC_SELECT=%d, voltage: %d mV\n", mic_select_level, final_voltage);
     } else if (headset_present && no_headset_cnt >= 3) {
+              headset_cnt = 0;
+        no_headset_cnt = 0;
         // 检测到耳机拔出
-        headset_present = false;
+      headset_present = false;
         mic_select_level = 0;
+        gpio_set_level(AUDIO_CODEC_PA_PIN, 0);
         gpio_set_level(MIC_SELECT_GPIO, mic_select_level);
+        gpio_set_level(USB_SW_GPIO, 0);
+        vTaskDelay(pdMS_TO_TICKS(10));
         gpio_set_level(AUDIO_CODEC_PA_PIN, 1);  // 打开扬声器
         
         ESP_LOGI(TAG, "Headset removed");
