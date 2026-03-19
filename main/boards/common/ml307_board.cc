@@ -224,6 +224,19 @@
 #include <opus_encoder.h>
 
 static const char *TAG = "Ml307Board";
+static void Ml307GnssReportToDisplay(const char *text) {
+    if (text == nullptr) {
+        return;
+    }
+
+    auto display = Board::GetInstance().GetDisplay();
+    if (display == nullptr) {
+        return;
+    }
+
+    display->SetChatMessage("system", text);
+}
+
 static const bool kGnssAtTestEnabled = false;  // GPS测试开关(4G路径)
 
 Ml307Board::Ml307Board(gpio_num_t tx_pin, gpio_num_t rx_pin, gpio_num_t dtr_pin) : tx_pin_(tx_pin), rx_pin_(rx_pin), dtr_pin_(dtr_pin) {
@@ -284,7 +297,10 @@ void Ml307Board::StartNetwork() {
     ESP_LOGI(TAG, "ML307 IMEI: %s", imei.c_str());
     ESP_LOGI(TAG, "ML307 ICCID: %s", iccid.c_str());
 
-        if (kGnssAtTestEnabled) {
+    if (kGnssAtTestEnabled) {
+        display->SetStatus("GNSS TEST");
+        display->SetChatMessage("system", "Waiting GNSS fix...");
+        ml307_gnss_at_test_set_report_callback(Ml307GnssReportToDisplay);
         ml307_gnss_at_test_start(tx_pin_, rx_pin_, 921600);
         return;
     }

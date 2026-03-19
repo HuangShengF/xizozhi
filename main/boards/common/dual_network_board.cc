@@ -9,6 +9,19 @@
 static const char *TAG = "DualNetworkBoard";
 static const bool kGnssAtTestOnWifiEnabled = true;
 
+static void Ml307GnssReportToDisplay(const char *text) {
+    if (text == nullptr) {
+        return;
+    }
+
+    auto display = Board::GetInstance().GetDisplay();
+    if (display == nullptr) {
+        return;
+    }
+
+    display->SetChatMessage("system", text);
+}
+
 DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_pin, gpio_num_t ml307_dtr_pin, int32_t default_net_type) 
     : Board(), 
       ml307_tx_pin_(ml307_tx_pin), 
@@ -77,6 +90,9 @@ void DualNetworkBoard::StartNetwork() {
     //hsf
     if (network_type_ == NetworkType::WIFI && kGnssAtTestOnWifiEnabled && !gnss_test_started_) {
         ESP_LOGI(TAG, "WiFi connected, start ML307 GNSS AT test");
+        display->SetStatus("GNSS TEST");
+        display->SetChatMessage("system", "Waiting GNSS fix...");
+        ml307_gnss_at_test_set_report_callback(Ml307GnssReportToDisplay);
         ml307_gnss_at_test_start(ml307_tx_pin_, ml307_rx_pin_, 921600);
         gnss_test_started_ = true;
     }

@@ -42,7 +42,7 @@ extern "C" {
 static volatile bool g_status_reporting = false;
 
 //NFC写入测试开关 
-#define NFC_WRITE_TEST_ENABLE 0
+#define NFC_WRITE_TEST_ENABLE 1
 // NFC写入测试块编号 block
 #define NFC_WRITE_TEST_BLOCK 4
 
@@ -218,6 +218,18 @@ static void InitUsbAudioDetect() {
     mic_select_level = 0;
     gpio_set_level(MIC_SELECT_GPIO, mic_select_level);
 
+    // gpio_set_level(USB_SW_GPIO, 1);
+    // vTaskDelay(pdMS_TO_TICKS(10));
+    // gpio_set_level(AUDIO_CODEC_PA_PIN, 1);
+    // int level = gpio_get_level(USB_SW_GPIO);
+    // if (level == 1) {
+    //     printf("USB_SW_GPIO is hight, USB is connected\n");
+    // }
+    // headset_present = true;
+
+
+    // EnableOutput(false);
+
     // adc_oneshot_unit_init_cfg_t init_cfg1 = {
     //     .unit_id = CC_ADC_UNIT,
     //     .ulp_mode = ADC_ULP_MODE_DISABLE,
@@ -350,6 +362,7 @@ static void UpdateUsbAudioDetect() {
         vTaskDelay(pdMS_TO_TICKS(20));
 
         gpio_set_level(USB_SW_GPIO, 1);  // USB_SW拉高，连接模拟USB耳机
+
         
         // 先将MIC_SELECT置0测电压
         gpio_set_level(MIC_SELECT_GPIO, 0);
@@ -438,9 +451,26 @@ static void UpdateUsbAudioDetect() {
 static void UsbAudioDetectTask(void* arg) {
     InitUsbAudioDetect();
     // printf("Starting USB audio detect task\n");
+        // auto codec = Board::GetInstance().GetAudioCodec();
+    // if (codec) {
+    //     codec->EnableOutput(false);
+    // }
     while (true) {
-        UpdateUsbAudioDetect();
-        vTaskDelay(pdMS_TO_TICKS(20));
+     UpdateUsbAudioDetect();   
+    // int level_before = gpio_get_level(USB_SW_GPIO);
+    // ESP_LOGI(TAG, "before = %d", level_before);
+
+    // if (level_before == 0) {
+    //     ESP_LOGI(TAG, "SW置1");
+    //     UpdateUsbAudioDetect();
+    //     gpio_set_level(USB_SW_GPIO, 1);
+
+    //     int level_after = gpio_get_level(USB_SW_GPIO);
+    //     ESP_LOGI(TAG, "after = %d", level_after);
+    // }
+
+
+    vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
@@ -962,9 +992,7 @@ void Application::Start() {
     // hsf
     xTaskCreate(UsbAudioDetectTask, "usb_audio_detect", 4096, nullptr, 4, nullptr);
 
-    // xTaskCreate(NfcScanTask, "nfc_scan", 4096, &board, 5, nullptr);
-
-
+    xTaskCreate(NfcScanTask, "nfc_scan", 4096, &board, 5, nullptr);
 
     /* Setup the display */
     auto display = board.GetDisplay();
@@ -995,12 +1023,16 @@ void Application::Start() {
     auto codec = board.GetAudioCodec();
     audio_service_.Initialize(codec);
 
+
+
     //hsf
     // if (codec->input_gain() < 37.0f) {
     // codec->SetInputGain(37.0f);
     // }
 
     audio_service_.Start();
+
+
 
 
 
